@@ -1,11 +1,7 @@
 // This file defines a number of helpers for wiring up user input to
 // table-related functionality.
 
-import {
-  Fragment,
-  ResolvedPos,
-  Slice,
-} from 'prosemirror-model';
+import { Fragment, ResolvedPos, Slice } from 'prosemirror-model';
 import {
   Command,
   EditorState,
@@ -140,6 +136,7 @@ function arrow(axis: Axis, dir: Direction): Command {
     if (axis != 'horiz' && !sel.empty) return false;
     const end = atEndOfCell(view, axis, dir, true); // the last parameter is to check also caption
     if (axis == 'horiz') {
+      if (end == null) return false;
       return maybeSetSelection(
         state,
         dispatch,
@@ -171,7 +168,7 @@ function arrow(axis: Axis, dir: Direction): Command {
             newSel = Selection.near(state.doc.resolve(pos), 1);
           }
         }
-      } else {
+      } else if (sel.anchor !== 0) {
         // check whether we are entering the table
         if (dir > 0) {
           const pos = sel.$anchor.after();
@@ -179,13 +176,16 @@ function arrow(axis: Axis, dir: Direction): Command {
           if (table && table.type.spec.tableRole === 'table')
             newSel = Selection.near(state.doc.resolve(pos), 1);
         } else {
-          newSel = Selection.near(state.doc.resolve(sel.$anchor.before()), -1);
-          const d = tableDepth(newSel.$anchor);
+          const selBefore = Selection.near(
+            state.doc.resolve(sel.$anchor.before()),
+            -1,
+          );
+          const d = tableDepth(selBefore.$anchor);
           if (d >= 0) {
-            const table = newSel.$anchor.node(d);
+            const table = selBefore.$anchor.node(d);
             const map = TableMap.get(table);
             const pos =
-              newSel.$anchor.start(d) +
+              selBefore.$anchor.start(d) +
               map.positionAt(map.height - 1, 0, table);
             newSel = Selection.near(state.doc.resolve(pos), 1);
           }
@@ -376,7 +376,7 @@ function atEndOfCell(
   view: EditorView,
   axis: Axis,
   dir: number,
-  checkCaption: boolean = false,
+  checkCaption = false,
 ): null | number {
   if (!(view.state.selection instanceof TextSelection)) return null;
   const { $head } = view.state.selection;

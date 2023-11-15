@@ -153,12 +153,20 @@ export function nextCell(
   axis: 'horiz' | 'vert',
   dir: number,
 ): ResolvedPos | null {
-  const table = $pos.node(-2);
-  const map = TableMap.get(table);
-  const tableStart = $pos.start(-2);
+  try {
+    const table = $pos.node(-2);
+    const map = TableMap.get(table);
+    const tableStart = $pos.start(-2);
 
-  const moved = map.nextCell($pos.pos - tableStart, axis, dir);
-  return moved == null ? null : $pos.node(0).resolve(tableStart + moved);
+    const moved = map.nextCell($pos.pos - tableStart, axis, dir);
+    return moved == null ? null : $pos.node(0).resolve(tableStart + moved);
+  } catch (e) {
+    if (e instanceof RangeError) {
+      return null;
+    }
+
+    throw e;
+  }
 }
 
 /**
