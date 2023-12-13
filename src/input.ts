@@ -123,7 +123,11 @@ function tabulation(dir: Direction): Command {
 }
 
 function arrow(axis: Axis, dir: Direction): Command {
-  return (state, dispatch, view) => {
+  const unsafeArrow = (
+    state: EditorState,
+    dispatch?: (tr: Transaction) => void,
+    view?: EditorView,
+  ) => {
     if (!view) return false;
     const sel = state.selection;
     if (sel instanceof CellSelection) {
@@ -191,7 +195,20 @@ function arrow(axis: Axis, dir: Direction): Command {
           }
         }
       }
+
       return newSel ? maybeSetSelection(state, dispatch, newSel) : false;
+    }
+  };
+
+  return (state, dispatch, view) => {
+    try {
+      return unsafeArrow(state, dispatch, view);
+    } catch (e) {
+      if (e instanceof RangeError) {
+        return false;
+      }
+
+      throw e;
     }
   };
 }
