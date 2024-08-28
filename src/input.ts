@@ -107,11 +107,12 @@ function tabulation(dir: Direction): Command {
       nextCellPos = map[i];
     }
     if (nextCellPos) {
-      const cell = table.nodeAt(nextCellPos);
-      if (!cell) return false;
+      const nextCellInnerPos = nextCellPos + 1;
+      const cellFirstChild = table.nodeAt(nextCellInnerPos);
+      if (!cellFirstChild) return false;
       if (dispatch) {
-        const from = tableStart + nextCellPos;
-        const to = from + cell.nodeSize - 1;
+        const from = tableStart + nextCellInnerPos;
+        const to = from + cellFirstChild.nodeSize - 1;
         dispatch(
           state.tr.setSelection(TextSelection.create(state.doc, from, to)),
         );
