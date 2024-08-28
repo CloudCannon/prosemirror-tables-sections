@@ -19,19 +19,61 @@ and an optional foot (`tfoot`).
 It defines four additional table roles: `head`, `body`, `foot` and `caption`.
 The first three are "section roles".
 
-`prosemirror-tables` defines a custom
-[TableView](https://github.com/ProseMirror/prosemirror-tables/blob/master/src/tableview.ts)
-that creates the `colgroup` DOM element and manages the `style` attribute
-of the `table` element.
-
-`prosemirror-tables-sections` does not need a custom 
-[EditorView](https://prosemirror.net/docs/ref/#view.EditorView).
-`colgroup` and table's `style` are set through 
-[Decorations](https://prosemirror.net/docs/ref/#view.Decorations).
-
 The top-level directory contains a `demo.js` and `index.html`, which
-can be built with `yarn build_demo` to show a simple demo of how the
-module can be used.
+can be built with `npm run build_demo` or `yarn build_demo`
+to show a simple demo of how the module can be used.
+
+## Version
+
+This is version 0.6.3.
+
+It fixes a nasty bug in the detection of table problems (e.g. missing or colliding cells),
+that are then fixed by `fixTables`.
+
+Since version 0.6.1, two commands have been added:
+
+- `setComputedStyleColumnWidths`, that sets the cells widths of a table
+  to the actual values you may have set with CSS.
+  It uses [window.getComputedStyle](https://developer.mozilla.org/en-US/docs/Web/API/Window/getComputedStyle)
+  to retrieve those widths.
+  If there's a column selection, it sets the widths of the selected columns' cells only,
+  otherwise it sets all the cells widths of the (inner) table in the selection.
+
+- `setRelativeColumnWidths(widths: number[], minwidth?: number)`,
+  that returns a [Command](https://prosemirror.net/docs/ref/#state.Command)
+  to set the relative widths of the (inner) table in the selection.
+  The relative widths must be in the range 0..1.
+  
+  The table width is the one obtained with [window.getComputedStyle](https://developer.mozilla.org/en-US/docs/Web/API/Window/getComputedStyle).
+  The new cells will get a _col width_ = _rel width_ * _table width_.
+  
+  If you specify `minwidth`, the columns will not be narrower than that.
+
+  If `widths.length` is greater than the number of columns, 
+  the exceeding widths will be ignored.
+
+  If `widths.length` is lesser than the number of columns,
+  only the first column widths will be set.
+
+The code of this version has been checked with the current version of
+[prosemirror-tables](https://github.com/ProseMirror/prosemirror-tables)
+(resulting in a bug being fixed).
+
+Since version 0.6.0 the code goes back to the implementation
+of `columnresizing.ts` and `tableview.ts` you find in the original
+[prosemirror-tables](https://github.com/ProseMirror/prosemirror-tables),
+adapted to table sections.
+
+BTW, thanks to the people maintaining the original project,
+in particular for the translation into Typescript, that let
+me go back to the original implementation of column resizing.
+
+## Known issues
+
+When you copy a portion of a table and you paste, you'll get a table
+with all the cells you copied, but they will be all in a table foot.
+
+Anyway, you can correct it into a table body with the `makeBody` command.
 
 ## Documentation
 
