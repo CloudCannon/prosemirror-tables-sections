@@ -39,11 +39,6 @@ import {
   tableHasHead,
   tableSectionsCount,
 } from './util';
-import {
-  columnResizingPluginKey,
-  getCellMinWidth,
-  getTableWidths,
-} from './columnresizing';
 
 /**
  * @public
@@ -340,7 +335,7 @@ export function removeRow(
         rowspan: attrs.rowspan - 1,
       });
       col += attrs.colspan - 1;
-    } else if (row < map.width && pos == map.map[index + map.width]) {
+    } else if (row < map.height && pos == map.map[index + map.width]) {
       // Else, if it continues in the row below, it has to be moved down
       const cell = table.nodeAt(pos)!;
       const attrs = cell.attrs as CellAttrs;
@@ -697,10 +692,6 @@ function makeSection(
       tableStart + cellsPositions[cellsPositions.length - 1],
     );
     tr.setSelection(new CellSelection($anchorCell, $headCell));
-    tr.setMeta(
-      columnResizingPluginKey,
-      getTableWidths(table, tableStart, getCellMinWidth(state)),
-    );
     dispatch(tr);
   }
   return true;
@@ -1204,9 +1195,7 @@ function findNextCell($cell: ResolvedPos, dir: Direction): number | null {
   const tableStart = $cell.start(-2);
   if (dir < 0) {
     const before = $cell.nodeBefore;
-    if (before) {
-      return $cell.pos - before.nodeSize;
-    }
+    if (before) return $cell.pos - before.nodeSize;
     for (
       let row = $cell.index(-2) - 1, rowEnd = $cell.before();
       row >= 0;
@@ -1280,4 +1269,221 @@ export function deleteTable(
     }
   }
   return false;
+}
+
+function sameWidths(w1: number[], w2: number[]) {
+  if (w1.length !== w2.length) return false;
+  for (let i = 0; i < w1.length; i++) {
+    if (w1[i] !== w2[i]) return false;
+  }
+  return true;
+}
+
+/**
+ * Prepares a transaction to update the column widths of a table.
+ * @param state      the editor state
+ * @param table      the table Node
+ * @param tableStart the table's content starting position
+ * @param left       the index of the first column to update (the first column has index 0)
+ * @param widths     the new widths of columns from index `left`
+ * @param _map       the table's tableMap (optional)
+ * @returns
+ */
+function updateColumnWidthsTransaction(
+  state: EditorState,
+  table: Node,
+  tableStart: number,
+  left: number,
+  widths: (number | null)[],
+  _map?: TableMap,
+): Transaction {
+  const doc = state.doc;
+  const tr = state.tr;
+  const map = _map || TableMap.get(table);
+  const right = Math.min(left + widths.length, map.width);
+  const updated: number[] = [];
+  for (let r = 0; r < map.height; r++) {
+    for (let c = left; c < right; c++) {
+      const pos = map.positionAt(r, c, table) + tableStart;
+      if (updated.indexOf(pos) >= 0) continue;
+      else updated.push(pos);
+      const cell = doc.nodeAt(pos);
+      if (cell) {
+        const attrs = cell.attrs as CellAttrs;
+        const colspan = attrs.colspan || 1;
+        const colwidth = widths.slice(c - left, c - left + colspan) as number[];
+        if (!attrs.colwidth || !sameWidths(colwidth, attrs.colwidth)) {
+          tr.setNodeMarkup(pos, null, { ...attrs, colwidth });
+        }
+      }
+    }
+  }
+  return tr;
+}
+
+/**
+ * Command function that sets the column widths to the values
+ * obtained with window.getComputedStyle.
+ * When the selection is a column selection, only the selected columns
+ * get the computed values;
+ * otherwise the inner table in the selection is the one whose cells
+ * are assigned the computed width.
+ *
+ * @public
+ */
+export function setComputedStyleColumnWidths(
+  state: EditorState,
+  dispatch?: (tr: Transaction) => void,
+  view?: EditorView,
+): boolean {
+  if (!isInTable(state)) return false;
+  if (view && dispatch) {
+    const { doc, selection } = state;
+    let table: Node;
+    let tableStart: number;
+    let map: TableMap;
+    let left: number;
+    let right: number;
+    if (selection instanceof CellSelection && selection.isColSelection()) {
+      const { $anchorCell, $headCell } = selection;
+      table = $anchorCell.node(-2);
+      tableStart = $anchorCell.start(-2);
+      map = TableMap.get(table);
+      const rect = map.rectBetween(
+        $anchorCell.pos - tableStart,
+        $headCell.pos - tableStart,
+      );
+      left = rect.left;
+      right = rect.right;
+    } else {
+      const $head = selection.$head;
+      const d = tableDepth($head);
+      table = $head.node(d);
+      tableStart = $head.start(d);
+      map = TableMap.get(table);
+      left = 0;
+      right = map.width;
+    }
+    let computedWidths: (number | null)[] = Array(right - left).fill(null);
+    for (let row = 0; row < map.height; row++) {
+      for (let col = left; col < right; col++) {
+        const pos = map.positionAt(row, col, table) + tableStart;
+        const cell = doc.nodeAt(pos);
+        const domNode = view.nodeDOM(pos);
+        if (domNode) {
+          const colwidth = Math.round(
+            parseFloat(
+              window.getComputedStyle(domNode as HTMLTableCellElement).width,
+            ),
+          );
+          if (colwidth) {
+            const colspan = cell?.attrs?.colspan;
+            if (colspan > 1) {
+              const aw = -colwidth / colspan;
+              for (let i = 0; i < colspan; i++)
+                computedWidths[col - left + i] = aw;
+              col += colspan - 1;
+            } else {
+              computedWidths[col - left] = colwidth;
+            }
+          }
+        }
+      }
+      if (computedWidths.every((aw) => aw !== null && aw >= 0)) break;
+    }
+    computedWidths = computedWidths.map((aw) =>
+      aw !== null && aw < 0 ? -aw : aw,
+    );
+    const tr = updateColumnWidthsTransaction(
+      state,
+      table,
+      tableStart,
+      left,
+      computedWidths,
+      map,
+    );
+    if (tr.docChanged) view.dispatch(tr);
+    return true;
+  }
+  return true;
+}
+
+/**
+ * Return the width of the (inner) table in the selection.
+ * @param view
+ * @returns the table width in pixels
+ */
+function getComputedTableWidth(view: EditorView): number | undefined {
+  if (view) {
+    const state = view.state;
+    if (!isInTable(state)) return;
+    const { selection } = state;
+    let tableStart: number;
+    const $head = selection.$head;
+    const d = tableDepth($head);
+    tableStart = $head.start(d);
+    // domNode should be the table wrapper, not the table element
+    let domNode = view.nodeDOM(tableStart - 1);
+    try {
+      if (domNode) {
+        domNode = domNode.firstChild;
+        while (domNode) {
+          if (domNode.nodeName === 'TABLE') break;
+          domNode = domNode.nextSibling;
+        }
+        if (domNode && domNode.nodeName === 'TABLE') {
+          const tableWidth = Math.round(
+            parseFloat(
+              window.getComputedStyle(domNode as HTMLTableElement).width,
+            ),
+          );
+          if (!isNaN(tableWidth)) return tableWidth;
+        }
+      }
+    } catch {
+      // do nothing, will return undefined
+    }
+  }
+}
+
+/**
+ * Sets the column widths as fractions (range 0..1) of the whole table width.
+ * If their sum is greater than one, you'll get a wider table.
+ * The same will happen if you specify a minwidth and some fractions would result
+ * in widths that are less than the minwidth.
+ * @param relwidths column widths as fractions of the table width (in the range 0 to 1)
+ * @param minwidth  minimum width of a column
+ * @returns
+ */
+export function setRelativeColumnWidths(
+  relwidths: number[],
+  minwidth?: number,
+) {
+  return (
+    state: EditorState,
+    dispatch?: (tr: Transaction) => void,
+    view?: EditorView,
+  ) => {
+    if (!isInTable(state)) return false;
+    if (view && dispatch) {
+      const tableWidth = getComputedTableWidth(view);
+      if (!tableWidth) return false;
+      const $head = state.selection.$head;
+      const depth = tableDepth($head);
+      if (depth < 0) return false;
+      const table = $head.node(depth);
+      const tableStart = $head.start(depth);
+      let widths = relwidths.map((rw) => Math.round(rw * tableWidth));
+      if (minwidth) widths = widths.map((w) => (w < minwidth ? minwidth : w));
+      const tr = updateColumnWidthsTransaction(
+        state,
+        table,
+        tableStart,
+        0,
+        widths,
+      );
+      if (tr.docChanged) dispatch(tr);
+    }
+    return true;
+  };
 }
