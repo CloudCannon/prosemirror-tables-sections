@@ -141,7 +141,6 @@ function arrow(axis: Axis, dir: Direction): Command {
     if (axis != 'horiz' && !sel.empty) return false;
     const end = atEndOfCell(view, axis, dir, true); // the last parameter is to check also caption
     if (axis == 'horiz') {
-      if (end == null) return false;
       return maybeSetSelection(
         state,
         dispatch,
@@ -149,7 +148,7 @@ function arrow(axis: Axis, dir: Direction): Command {
       );
     } else {
       let newSel;
-      if (end) {
+      if (end !== null) {
         const $cell = state.doc.resolve(end);
         if ($cell.node().type.spec.tableRole === 'row') {
           // cursor is in cell
@@ -173,28 +172,25 @@ function arrow(axis: Axis, dir: Direction): Command {
             newSel = Selection.near(state.doc.resolve(pos), 1);
           }
         }
-      } else if (sel.anchor !== 0) {
-        // check whether we are entering the table
-        if (dir > 0) {
-          const pos = sel.$anchor.after();
-          const table = state.doc.nodeAt(pos);
-          if (table && table.type.spec.tableRole === 'table')
-            newSel = Selection.near(state.doc.resolve(pos), 1);
-        } else {
-          const selBefore = Selection.near(
-            state.doc.resolve(sel.$anchor.before()),
-            -1,
-          );
-          const d = tableDepth(selBefore.$anchor);
-          if (d >= 0) {
-            const table = selBefore.$anchor.node(d);
-            const map = TableMap.get(table);
-            const pos =
-              selBefore.$anchor.start(d) +
-              map.positionAt(map.height - 1, 0, table);
-            newSel = Selection.near(state.doc.resolve(pos), 1);
-          }
+      } else if (sel.anchor !== 0 && view.endOfTextblock(dir > 0 ? 'down' : 'up')) {
+        const depthOfTableNode = tableDepth(sel.$anchor);
+        const table = sel.$anchor.node(depthOfTableNode);
+        if (table.type.spec.tableRole !== 'table') {
+          return false;
         }
+        const tableStartPos = sel.$anchor.start(depthOfTableNode);
+        const tableMap = TableMap.get(table);
+        const posOfCell = tableMap.map.reduce((result, curr) => ((sel.to - tableStartPos) >= curr && curr >= result) ? curr : result, 0);
+        const { left, top } = tableMap.findCell(posOfCell);
+        let newPosition;
+        if (top + dir > tableMap.height - 1) {
+          newPosition = sel.$anchor.end(depthOfTableNode) + 1;
+        } else if (top + dir < 0) {
+          newPosition = tableStartPos - 1;
+        } else {
+          newPosition = tableMap.positionAt(top + dir, left, table) + tableStartPos + 2;
+        }
+        newSel = Selection.near(state.doc.resolve(newPosition), dir);
       }
 
       return newSel ? maybeSetSelection(state, dispatch, newSel) : false;
