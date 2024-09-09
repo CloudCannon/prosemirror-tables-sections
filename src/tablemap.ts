@@ -326,13 +326,13 @@ function computeMap(table: Node): TableMap {
   const tmap = new TableMap(width, height, [], [], null);
 
   let offset = 0;
-  let colWidths: ColWidths = [];
+  const colWidths: ColWidths = [];
   let rowsOffset = 0;
   for (let c = 0; c < table.childCount; c++) {
     const section = table.child(c);
     if (isTableSection(section)) {
       tmap.sectionRows.push(section.childCount);
-      let smap = computeSectionMap(section, width, offset + 1, colWidths);
+      const smap = computeSectionMap(section, width, offset + 1, colWidths);
       tmap.map = tmap.map.concat(smap.map);
       if (smap.problems) {
         tmap.problems = tmap.problems || [];
