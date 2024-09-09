@@ -141,7 +141,6 @@ function arrow(axis: Axis, dir: Direction): Command {
     if (axis != 'horiz' && !sel.empty) return false;
     const end = atEndOfCell(view, axis, dir, true); // the last parameter is to check also caption
     if (axis == 'horiz') {
-      if (end == null) return false;
       return maybeSetSelection(
         state,
         dispatch,
