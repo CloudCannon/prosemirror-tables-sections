@@ -32,8 +32,8 @@ export class TableView implements NodeView {
   }
 
   ignoreMutation(record: ViewMutationRecord): boolean {
-    const table = this.contentDOM
-    const colgroup = getColgroup(table)
+    const table = this.contentDOM;
+    const colgroup = getColgroup(table);
     return (
       record.type == 'attributes' &&
       (record.target == table || (colgroup && colgroup.contains(record.target)))
@@ -45,19 +45,18 @@ function getColgroup(table: HTMLTableElement): HTMLElement {
   let colgroup = table.firstChild as HTMLElement;
   let childIndex = 0;
   while (colgroup) {
-    const nodeName = colgroup.nodeName
+    const nodeName = colgroup.nodeName;
     if (nodeName === 'COLGROUP') {
-      break
-    } else if (nodeName==='CAPTION'){
+      break;
+    } else if (nodeName === 'CAPTION') {
       colgroup = colgroup.nextSibling as HTMLElement;
       childIndex++;
     } else {
-      break
+      break;
     }
   }
   if (colgroup) {
-    if (colgroup.nodeName === 'COLGROUP') {
-    } else {
+    if (colgroup.nodeName !== 'COLGROUP') {
       colgroup = table.insertBefore(
         document.createElement('COLGROUP'),
         table.children[childIndex],
@@ -88,7 +87,7 @@ export function updateColumnsOnResize(
 ): void {
   let totalWidth = 0;
   let fixedWidth = true;
-  const colgroup = getColgroup(table)
+  const colgroup = getColgroup(table);
   if (!colgroup) return;
 
   let nextDOM = colgroup.firstChild as HTMLElement;

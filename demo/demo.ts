@@ -70,7 +70,10 @@ function item(label: string, cmd: (state: EditorState) => boolean) {
 }
 const tableMenu = [
   item('Set column widths with getComputedStyle', setComputedStyleColumnWidths),
-  item('Set column widths to 20%, 60%, 20%', setRelativeColumnWidths([.2, .6, .2])),
+  item(
+    'Set column widths to 20%, 60%, 20%',
+    setRelativeColumnWidths([0.2, 0.6, 0.2]),
+  ),
   item('Add table caption', addCaption),
   item('Delete table caption', deleteCaption),
   item('Add table head', addTableHead),
@@ -116,7 +119,6 @@ let state = EditorState.create({
   ].concat(
     exampleSetup({
       schema,
-      // @ts-expect-error: prosemirror-example-setup exports wrong types here.
       menuContent: menu,
     }),
   ),

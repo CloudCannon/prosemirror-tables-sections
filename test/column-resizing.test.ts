@@ -12,6 +12,9 @@ describe('handleDecorations', () => {
     });
     // @ts-expect-error: null is not a valid number
     const decoSet = handleDecorations(state, null);
-    ist(decoSet instanceof DecorationSet && decoSet.find(undefined, undefined, () => true).length === 0)
+    ist(
+      decoSet instanceof DecorationSet &&
+        decoSet.find(undefined, undefined, () => true).length === 0,
+    );
   });
 });

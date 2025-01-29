@@ -432,7 +432,7 @@ export function addCaption(
   const table = $anchor.node(d);
   if (tableHasCaption(table)) return false;
   if (dispatch) {
-    let pos = $anchor.start(d);
+    const pos = $anchor.start(d);
     const types = tableNodeTypes(state.schema);
     const caption = types.caption.createAndFill();
     dispatch(state.tr.insert(pos, caption!));
@@ -455,7 +455,7 @@ export function deleteCaption(
   const table = $anchor.node(d);
   if (!tableHasCaption(table)) return false;
   if (dispatch) {
-    let pos = $anchor.start(d);
+    const pos = $anchor.start(d);
     const size = table.firstChild!.nodeSize;
     dispatch(state.tr.delete(pos, pos + size));
   }
@@ -1418,10 +1418,9 @@ function getComputedTableWidth(view: EditorView): number | undefined {
     const state = view.state;
     if (!isInTable(state)) return;
     const { selection } = state;
-    let tableStart: number;
     const $head = selection.$head;
     const d = tableDepth($head);
-    tableStart = $head.start(d);
+    const tableStart = $head.start(d);
     // domNode should be the table wrapper, not the table element
     let domNode = view.nodeDOM(tableStart - 1);
     try {
