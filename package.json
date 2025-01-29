@@ -45,7 +45,7 @@
     "prosemirror-test-builder": "^1.1.0",
     "tsup": "^6.5.0",
     "typescript": "^4.0.0",
-    "vite": "^3.2.4",
+    "vite": "^6.0.11",
     "vitest": "^0.25.3"
   },
   "scripts": {

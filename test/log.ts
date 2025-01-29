@@ -4,11 +4,7 @@ import { TableMap } from '../src/tablemap';
 import { Area } from '../src/copypaste';
 import { CellSelection } from '../src';
 
-export function logNode(
-  t: Node,
-  title?: string,
-  onlyTableElements: boolean = true,
-) {
+export function logNode(t: Node, title?: string, onlyTableElements = true) {
   if (title) console.log(title);
   t.descendants((n, p) => {
     const tn = n.type.name;
@@ -77,7 +73,7 @@ export function logTableMap(tableMap: TableMap) {
   }
 }
 
-export function logSelection(sel: Selection, name: string = '') {
+export function logSelection(sel: Selection, name = '') {
   console.log(
     `${name}: SELECTION "${sel.content()}", anchor=${sel.anchor}, head=${
       sel.head

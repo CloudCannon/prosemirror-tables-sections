@@ -11,6 +11,7 @@
     "declarationMap": true,
     "declarationDir": ".",
     "noEmitOnError": false,
+    "skipLibCheck": true,
     "moduleResolution": "node"
   },
   "include": ["./"],

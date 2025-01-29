@@ -27,7 +27,7 @@ const cw100 = td({ colwidth: [100] }, p('x'));
 const cw150 = td({ colwidth: [150] }, p('x'));
 const cw200 = td({ colwidth: [200] }, p('x'));
 
-function fix(table: Node, debug: boolean = false) {
+function fix(table: Node, debug = false) {
   const state = EditorState.create({ doc: doc(table) });
   if (debug) {
     logNode(state.doc, 'BEFORE fixTables:');

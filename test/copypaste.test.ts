@@ -166,7 +166,7 @@ describe('insertCells', () => {
     doc: TaggedNode,
     cells: TaggedNode,
     expected_result: TaggedNode,
-    log: boolean = false,
+    log = false,
     onlyTableElements = true,
   ) {
     if (

@@ -32,7 +32,6 @@ type TaggedNodeBuilder = (
   ...children: (Node | string)[]
 ) => TaggedNode;
 
-// @ts-expect-error: the return type of builders is not correct
 const nodeBuilders = builders(schema, {
   p: { nodeType: 'paragraph' },
   table: { nodeType: 'table' },

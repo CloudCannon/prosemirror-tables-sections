@@ -172,7 +172,10 @@ function arrow(axis: Axis, dir: Direction): Command {
             newSel = Selection.near(state.doc.resolve(pos), 1);
           }
         }
-      } else if (sel.anchor !== 0 && view.endOfTextblock(dir > 0 ? 'down' : 'up')) {
+      } else if (
+        sel.anchor !== 0 &&
+        view.endOfTextblock(dir > 0 ? 'down' : 'up')
+      ) {
         const depthOfTableNode = tableDepth(sel.$anchor);
         const table = sel.$anchor.node(depthOfTableNode);
         if (table.type.spec.tableRole !== 'table') {
@@ -180,7 +183,11 @@ function arrow(axis: Axis, dir: Direction): Command {
         }
         const tableStartPos = sel.$anchor.start(depthOfTableNode);
         const tableMap = TableMap.get(table);
-        const posOfCell = tableMap.map.reduce((result, curr) => ((sel.to - tableStartPos) >= curr && curr >= result) ? curr : result, 0);
+        const posOfCell = tableMap.map.reduce(
+          (result, curr) =>
+            sel.to - tableStartPos >= curr && curr >= result ? curr : result,
+          0,
+        );
         const { left, top } = tableMap.findCell(posOfCell);
         let newPosition;
         if (top + dir > tableMap.height - 1) {
@@ -188,7 +195,8 @@ function arrow(axis: Axis, dir: Direction): Command {
         } else if (top + dir < 0) {
           newPosition = tableStartPos - 1;
         } else {
-          newPosition = tableMap.positionAt(top + dir, left, table) + tableStartPos + 2;
+          newPosition =
+            tableMap.positionAt(top + dir, left, table) + tableStartPos + 2;
         }
         newSel = Selection.near(state.doc.resolve(newPosition), dir);
       }
