@@ -177,10 +177,8 @@ function arrow(axis: Axis, dir: Direction): Command {
         view.endOfTextblock(dir > 0 ? 'down' : 'up')
       ) {
         const depthOfTableNode = tableDepth(sel.$anchor);
+        if (depthOfTableNode < 0) return false;
         const table = sel.$anchor.node(depthOfTableNode);
-        if (table.type.spec.tableRole !== 'table') {
-          return false;
-        }
         const tableStartPos = sel.$anchor.start(depthOfTableNode);
         const tableMap = TableMap.get(table);
         const posOfCell = tableMap.map.reduce(
